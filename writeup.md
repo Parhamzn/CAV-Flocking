@@ -56,6 +56,28 @@ Phase 3 dropped the side-by-side ablations and ran four traffic-theory benchmark
 
 **Off-centre initial placement.** With dy sweeps from 0 (head-on) to 14 m (pre-sorted lanes), two counter-intuitive results emerged. First, τ-engagement count *increases* with offset, because at large dy neither flock deflects, so headings stay anti-parallel and the gate stays satisfied longer. Second, deflection magnitude *decreases* with offset because cars start near a wall and reach the β-edge after only ≈ 2 m of motion. Two deflection regimes were identified: encounter-limited (centred, wide road) and β-limited (off-centre or narrow road). This corrects the universal-target-band claim from the asymmetry sweep.
 
+**Merging at an on-ramp (the third recurring geometry).** Beyond corridor and intersection, real traffic includes merge geometries: an on-ramp joining a main road. A geometry-aware β-wall (`control_beta_merge.py`) handles the variable bottom wall in a `L_merge = 30 m` merge zone where the on-ramp's outer wall ramps linearly from `y = -7` to `y = 0`. Two flock-ID assignments were tested:
+
+| Strategy | pair-min | off-road |
+| --- | --- | --- |
+| Two flock_ids (main, ramp distinct) | **0.01 m** | 0 |
+| Single flock_id (both streams together) | **1.85 m** | 0 |
+
+The two-flock-id approach fails completely because McKenzie has no native same-direction inter-stream force: τ requires anti-parallel headings (the gate never opens for merging traffic), and α only acts within a flock. Cars from main and ramp pass *through* each other in the merge zone. The compositional workaround is to treat both streams as a single flock so the α-lattice extends across both lanes; the α-gradient maintains spacing as the on-ramp's wall pushes cars up into the main road.
+
+With the single-flock-id kludge, asymmetric merging is robust across every configuration tested (`exp_merge_asymmetric.py`):
+
+| Scenario | N_main + N_ramp | pair-min | off-road | in-main / total |
+| --- | --- | --- | --- | --- |
+| Baseline | 4 + 4 | 1.85 m | 0 | 8 / 8 |
+| Big main | 8 + 2 | 1.55 m | 0 | 10 / 10 |
+| Big ramp | 2 + 8 | 1.60 m | 0 | 10 / 10 |
+| Stagger ramp +30 m | 4 + 4 | 6.93 m | 0 | 8 / 8 |
+| Single-car merge | 4 + 1 | 1.70 m | 0 | 5 / 5 |
+| Long main | 10 + 2 | 1.55 m | 0 | 12 / 12 |
+
+All ratios from 1:0 up to 8:2 and 10:2 succeed: every car reaches the main road, zero off-road events, zero stalls. Pair-min sits at 1.55–1.85 m during active merging (below `d_a` but well above car width) and reverts to `d_a = 7 m` when streams don't conflict in time. This is the third Phase-1 scenario that exposes a structural gap (no same-direction inter-stream force) and the workaround that papers over it.
+
 **Three-plus flocks at intersection.** Geometric analysis: McKenzie's J is a reflection across y = x, not a rotation. The τ-force direction is "perpendicular-ish" only when velocity aligns with a cardinal axis. For four flocks at 90°, all four deflect to the right of their motion direction, creating clockwise spiral pressure that is too weak to curve them away from each other at the centre. Symmetric three- and four-flock cases show inter-min of 0.07 m and 0.00 m respectively, well below car width. McKenzie's τ-agent is fundamentally a one-dimensional corridor algorithm; it does not extend to non-cardinal multi-flock geometries without a rotational substitution.
 
 ### 3.2 Phase 2: algorithmic improvements

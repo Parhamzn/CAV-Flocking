@@ -593,6 +593,64 @@ entire new geometry class.
 
 ---
 
+## 3.5 Merging at an on-ramp (third recurring geometry)  *(done · 2026-05-23)*
+**Where it surfaced:** project requires three scenario classes (single
+corridor, intersection, merging). Corridor was Investigations #1-3;
+intersection is #4 below; merging is its own beast and got its own
+custom β-wall.
+
+**Setup (control_beta_merge.py + exp_merge.py + exp_merge_asymmetric.py):**
+geometry-aware β handles the variable-y bottom wall in a merge zone of
+length L_merge = 30 m. Pre-merge (x < 0): main road y ∈ [0, 7] and on-ramp
+y ∈ [-7, 0] are separated by a gore at y = 0. Merge zone (0 ≤ x ≤ L_merge):
+the on-ramp's outer wall ramps linearly from y = -7 (at x = 0) to y = 0 (at
+x = L). Post-merge (x > L_merge): main road only.
+
+**Headline failure: McKenzie has no native same-direction inter-stream
+force.** Two flock-ID assignments tested:
+
+  | Strategy | pair-min | inter-min | off-road |
+  | --- | --- | --- | --- |
+  | Two flock_ids (main = 1, ramp = 2) | **0.01 m** | **0.01 m** | 0 |
+  | Single flock_id (both streams = 1) | **1.85 m** | n/a | 0 |
+
+Two-flock-id fails because τ's heading gate closes for parallel streams
+(no anti-parallel encounter) and α only acts within-flock. Cars from
+main and ramp have *no* mutual force and pass through each other in the
+merge zone — pair-min = 1 cm.
+
+**Workaround that works:** treat both streams as a single flock so α
+extends across both lanes. The α-gradient maintains spacing as the
+on-ramp's wall pushes cars upward into the main road's y-band. This is
+a compositional kludge (it conflates two physical streams into one
+logical flock), but it works robustly.
+
+**Asymmetric sweep (exp_merge_asymmetric.py) with single-flock kludge:**
+
+  | Scenario | N_main + N_ramp | pair-min | off-road | in-main / total | stalled |
+  | --- | --- | --- | --- | --- | --- |
+  | A · baseline | 4 + 4 | 1.85 m | 0 | 8/8 | 0 |
+  | B · big main | 8 + 2 | 1.55 m | 0 | 10/10 | 0 |
+  | C · big ramp | 2 + 8 | 1.60 m | 0 | 10/10 | 0 |
+  | D · empty main | 0 + 4 | 6.93 m | 0 | 4/4 | 0 |
+  | E · empty ramp | 4 + 0 | 7.00 m | 0 | 4/4 | 0 |
+  | F · stagger ramp +30 m | 4 + 4 | 6.93 m | 0 | 8/8 | 0 |
+  | G · single-car merge | 4 + 1 | 1.70 m | 0 | 5/5 | 0 |
+  | H · long main | 10 + 2 | 1.55 m | 0 | 12/12 | 0 |
+
+All eight: 100 % cars in main road by end, 0 off-road, 0 stalls. Pair-min
+sits at 1.55-1.85 m during active merging (below d_a but well above car
+width) and reverts to d_a = 7.0 m when streams don't conflict in time
+(D, E, F). The flock-ID kludge gracefully handles ratios from 1:0 up to
+8:2 and 10:2.
+
+**Phase 4 candidate surfaced by the merge work:** a proper *directional
+α* that respects flock identity but still applies a spacing force across
+flocks heading in similar directions. This would handle merging without
+the flock-ID conflation kludge, and would also help lane changes,
+formation reconfigurations, and vehicle insertions — anything where
+multiple parallel streams need to interact without τ being applicable.
+
 ## 4. 3+ flocks at an intersection  *(done · 2026-05-23)*
 **Where it surfaced:** natural extension beyond 2-flock geometries.
 McKenzie didn't test this.

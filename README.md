@@ -115,7 +115,47 @@ With `N₁ = 4` fixed and `N₂ ∈ {1, …, 12}`, deflection magnitude is rough
 
 Two counter-intuitive findings emerge. First, **τ-engagement count *increases* with offset**: at large `dy`, neither flock deflects, so headings stay anti-parallel and the gate stays satisfied longer. Second, **deflection magnitude *decreases* with offset** because cars start near a wall and reach the β-edge after only ≈ 2 m of motion. Two deflection regimes are identified: encounter-limited (centred, wide road) and β-limited (off-centre or narrow road).
 
-### 1.4 Three-plus flocks at intersection — the algorithm boundary
+### 1.4 Merging at an on-ramp — the third scenario
+
+<p align="center">
+  <img src="figures/merge_asymmetric.png" alt="Asymmetric merge configurations — 8 scenarios from baseline 4+4 to long-main 10+2" width="100%">
+</p>
+
+Beyond corridor and intersection, real traffic includes a third recurring geometry: an on-ramp merging into a main road. We built a custom geometry-aware β-wall (`flocking_lib/control_beta_merge.py`) that handles the variable-y bottom wall in a merge zone of length `L_merge = 30 m`: pre-merge (`x < 0`) the on-ramp sits at `y ∈ [-7, 0]` separated from the main road `y ∈ [0, 7]` by a gore; in the merge zone the on-ramp's outer wall ramps linearly from `y = -7` to `y = 0`; post-merge only the main road remains.
+
+**Headline finding: McKenzie's algorithm has no native same-direction inter-stream force.** A naive two-flock-id assignment (main = flock 1, ramp = flock 2) produces a complete failure:
+
+<p align="center">
+  <img src="figures/merge_two.png" alt="Two-flock-id merging: cars pass through each other (pair_min = 0.01 m)" width="85%">
+</p>
+
+| Strategy | pair_min | inter_min | off-road |
+| -------- | -------- | --------- | -------- |
+| Two flock_ids (main = 1, ramp = 2) | **0.01 m** | **0.01 m** | 0 |
+| Single flock_id (both streams = 1) | **1.85 m** | n/a | 0 |
+
+Why the two-flock-id approach fails: τ's gate requires anti-parallel headings, and the merge has both flocks heading `+x`. So τ never fires. α only acts within a flock, so different flock-IDs see no spacing force. Result: cars pass *through* each other in the merge zone.
+
+The compositional workaround is to treat both streams as a single flock so the α-lattice extends across both lanes. The α-gradient naturally maintains spacing as the on-ramp's wall pushes cars up into the main road. This is a kludge (it conflates two physical streams into one logical flock), but it works robustly.
+
+**With the kludge, asymmetric merging is robust across configurations** (`exp_merge_asymmetric.py`):
+
+| Scenario | N_main + N_ramp | pair-min | off-road | in-main / total | stalled |
+| -------- | --------------- | -------- | -------- | --------------- | ------- |
+| A · baseline | 4 + 4 | 1.85 m | 0 | 8 / 8 | 0 |
+| B · big main | 8 + 2 | 1.55 m | 0 | 10 / 10 | 0 |
+| C · big ramp | 2 + 8 | 1.60 m | 0 | 10 / 10 | 0 |
+| D · empty main | 0 + 4 | 6.93 m | 0 | 4 / 4 | 0 |
+| E · empty ramp | 4 + 0 | 7.00 m | 0 | 4 / 4 | 0 |
+| F · stagger ramp +30 m | 4 + 4 | 6.93 m | 0 | 8 / 8 | 0 |
+| G · single car merge | 4 + 1 | 1.70 m | 0 | 5 / 5 | 0 |
+| H · long main | 10 + 2 | 1.55 m | 0 | 12 / 12 | 0 |
+
+All eight scenarios: every car reaches the main road, zero off-road events, zero stalls. Pair-min sits at 1.55–1.85 m during active merging (below `d_a` but well above car width) and reverts to `d_a = 7 m` when streams don't conflict in time (D, E, F). The flock-ID kludge gracefully handles ratios from 1:0 up to 8:2 and 10:2.
+
+**Phase 4 candidate surfaced by the merge work:** a "same-direction inter-stream" force (basically a directional α that respects flock boundaries but still maintains spacing across them) would let the algorithm handle merging without the flock-ID conflation. This would also matter for any scenario with structured-but-parallel flows (lane changes, formation reconfigurations, vehicle insertions).
+
+### 1.5 Three-plus flocks at intersection — the algorithm boundary
 
 <p align="center">
   <img src="figures/exp_intersection.png" alt="Three and four flocks meeting at an intersection — McKenzie's J fails" width="100%">
