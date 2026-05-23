@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flocking Dynamics Explorer · McKenzie τ + Olfati-Saber</title>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --panel: #131a2c;
+    --panel-2: #1b243d;
+    --line: #2a3553;
+    --text: #e6ecf8;
+    --text-dim: #8b97b8;
+    --accent: #7ea3ff;
+    --accent-2: #62e0c5;
+    --warn: #ff7e89;
+    --car-1: #5dade2;
+    --car-2: #f1948a;
+    --car-3: #82e0aa;
+    --car-4: #f9b67c;
+    --wall: #404a6a;
+    --grid: rgba(255,255,255,0.04);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    height: 100%;
+    overflow: hidden;
+  }
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 22px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #161f37 0%, #0e1424 100%);
+  }
+  header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  header h1 small {
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-left: 8px;
+    font-size: 12px;
+  }
+  nav {
+    display: flex;
+    gap: 6px;
+    background: var(--panel);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  nav button {
+    background: transparent;
+    color: var(--text-dim);
+    border: 0;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+  nav button:hover {
+    color: var(--text);
+  }
+  nav button.active {
+    background: var(--accent);
+    color: #0b0f1a;
+  }
+  main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 14px;
+    padding: 14px;
+    overflow: hidden;
+  }
+  .canvas-wrap {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  #sim {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .overlay {
+    position: absolute;
+    top: 12px; left: 14px;
+    color: var(--text-dim);
+    font-size: 12px;
+    pointer-events: none;
+    line-height: 1.55;
+  }
+  .overlay strong { color: var(--text); }
+  .panel-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+  }
+  .panel-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .panel-card h2 {
+    margin: 0 0 12px 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .param {
+    display: grid;
+    grid-template-columns: 1fr 56px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 9px;
+  }
+  .param label {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .param .val {
+    text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--accent-2);
+  }
+  .param input[type="range"] {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    height: 18px;
+  }
+  .param input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+  }
+  .param input[type="range"]::-moz-range-track {
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+  }
+  .param input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: -5px;
+    border: 0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .param input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 0;
+    cursor: pointer;
+  }
+  .param input[type="range"]:hover::-webkit-slider-thumb {
+    background: var(--accent-2);
+  }
+  .param.toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider-bg {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--panel-2);
+    border-radius: 9px;
+    transition: 0.15s;
+  }
+  .slider-bg::before {
+    position: absolute;
+    content: "";
+    height: 14px; width: 14px;
+    left: 2px; top: 2px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: 0.15s;
+  }
+  input:checked + .slider-bg { background: var(--accent); }
+  input:checked + .slider-bg::before { transform: translateX(14px); background: white; }
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .metric {
+    background: var(--panel-2);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .metric .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .metric .value {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 16px;
+    margin-top: 3px;
+    color: var(--text);
+  }
+  .metric.warn .value { color: var(--warn); }
+  .metric.good .value { color: var(--accent-2); }
+  .controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .controls button {
+    flex: 1;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .controls button:hover {
+    background: var(--line);
+    border-color: var(--accent);
+  }
+  .controls button.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .controls button.primary:hover {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+  }
+  .legend {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .legend .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  .desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--panel-2); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Flocking Dynamics Explorer
+      <small>McKenzie τ-agent · α/β/γ/τ flocking · R(+90°)</small>
+    </h1>
+    <nav id="nav">
+      <button data-scenario="corridor" class="active">Corridor</button>
+      <button data-scenario="intersection">Intersection</button>
+      <button data-scenario="merge">Merge</button>
+    </nav>
+  </header>
+  <main>
+    <div class="canvas-wrap">
+      <canvas id="sim"></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+    <aside class="panel-side">
+      <div class="panel-card">
+        <h2>Parameters</h2>
+        <div id="params"></div>
+      </div>
+      <div class="panel-card">
+        <h2>Live metrics</h2>
+        <div class="metrics" id="metrics"></div>
+      </div>
+      <div class="panel-card">
+        <h2>Controls</h2>
+        <div class="controls">
+          <button id="play" class="primary">Pause</button>
+          <button id="reset">Reset</button>
+        </div>
+        <div class="param" style="margin-top: 10px;">
+          <label>Sim speed</label>
+          <span class="val" id="speed-val">1.0×</span>
+          <input type="range" id="speed" min="0.25" max="3" step="0.25" value="1">
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="panel-card">
+        <h2>About this scenario</h2>
+        <div class="desc" id="desc"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// PHYSICS / MATH HELPERS
+// ============================================================
+const EPS = 0.1;
+const A_PHI = 5, B_PHI = 5;          // phi(z, a, b)
+const D_A = 7;                        // desired lattice spacing
+const H_A = 0.2;
+const R_A = 1.2 * D_A;
+const C1_A = 5, C2_A = 2 * Math.sqrt(5);
+const D_B = 3.0;
+const H_B = 0.2;
+const C1_B = 200, C2_B = 2 * Math.sqrt(200);
+const C_G = 1.5;
+const A_MAX = 9.0;
+const C1_T = 0.0;                     // velocity-only tau
+
+const J  = [[0, 1], [1, 0]];          // McKenzie reflection
+const RP = [[0,-1], [1, 0]];          // R(+90°) rotation
+
+function sigmaNorm(z, e) {
+  let s;
+  if (typeof z === 'number') s = z*z;
+  else s = z[0]*z[0] + z[1]*z[1];
+  return (Math.sqrt(1 + e*s) - 1) / e;
+}
+function rho(z, h) {
+  if (z >= 0 && z < h) return 1;
+  if (z >= h && z <= 1) return 0.5 * (1 + Math.cos(Math.PI * (z - h) / (1 - h)));
+  return 0;
+}
+function phi(z) {
+  // a == b => c = 0, simplifies to a*sigma_1(z)
+  return A_PHI * z / Math.sqrt(1 + z*z);
+}
+function phiAlpha(z, r, e, d, h) {
+  return rho(z / sigmaNorm(r, e), h) * phi(z - sigmaNorm(d, e));
+}
+function phiBeta(z, d_b, h_b, e) {
+  const dp = sigmaNorm(d_b, e);
+  const arg = z - dp;
+  const s1 = arg / Math.sqrt(1 + arg*arg);
+  return rho(z / dp, h_b) * (s1 - 1);
+}
+function nij(qi, qj, e) {
+  const dx = qj[0] - qi[0], dy = qj[1] - qi[1];
+  const denom = Math.sqrt(1 + e*(dx*dx + dy*dy));
+  return [dx/denom, dy/denom];
+}
+function aij(qi, qj, h, r, e) {
+  const dx = qj[0] - qi[0], dy = qj[1] - qi[1];
+  return rho(sigmaNorm([dx, dy], e) / sigmaNorm(r, e), h);
+}
+function matVec(M, v) {
+  return [M[0][0]*v[0] + M[0][1]*v[1], M[1][0]*v[0] + M[1][1]*v[1]];
+}
+
+// ============================================================
+// FORCES (α, γ, τ — β is scenario-specific)
+// ============================================================
+function forceAlpha(i, q, p, flockId) {
+  const qi = q[i], pi = p[i];
+  let gx=0, gy=0, cx=0, cy=0;
+  const rSigma = sigmaNorm(R_A, EPS);
+  for (let j = 0; j < q.length; j++) {
+    if (j === i || flockId[j] !== flockId[i]) continue;
+    const qj = q[j], pj = p[j];
+    const z = sigmaNorm([qj[0]-qi[0], qj[1]-qi[1]], EPS);
+    if (z > rSigma) continue;
+    const phia = phiAlpha(z, R_A, EPS, D_A, H_A);
+    const n = nij(qi, qj, EPS);
+    gx += phia * n[0]; gy += phia * n[1];
+    const a = aij(qi, qj, H_A, R_A, EPS);
+    cx += a*(pj[0]-pi[0]); cy += a*(pj[1]-pi[1]);
+  }
+  return [C1_A*gx + C2_A*cx, C1_A*gy + C2_A*cy];
+}
+function forceGamma(i, p, flockId, p_d_per_flock) {
+  const pi = p[i];
+  const pd = p_d_per_flock[flockId[i]];
+  return [-C_G * (pi[0] - pd[0]), -C_G * (pi[1] - pd[1])];
+}
+function forceTau(i, q, p, flockId, params) {
+  const qi = q[i], pi = p[i];
+  let ux = 0, uy = 0;
+  const sp = Math.hypot(pi[0], pi[1]);
+  if (sp < 1e-9) return [0, 0];
+  const dx_i = pi[0]/sp, dy_i = pi[1]/sp;
+  const d_c = params.d_c;
+  const c2_t = params.c2_t;
+  const M = params.tauMatrix;
+  const suppress = params.suppressTh;
+  for (let r = 0; r < q.length; r++) {
+    if (flockId[r] === flockId[i]) continue;
+    const qr = q[r], pr = p[r];
+    const dx = qi[0]-qr[0], dy = qi[1]-qr[1];
+    const dist = Math.hypot(dx, dy);
+    if (dist > d_c) continue;
+    const sr = Math.hypot(pr[0], pr[1]);
+    if (sr < 1e-9) continue;
+    if (dx_i*(pr[0]/sr) + dy_i*(pr[1]/sr) > 0) continue;
+    const ddx = pi[0]-pr[0], ddy = pi[1]-pr[1];
+    if (suppress !== null && suppress > 0) {
+      const denom = ddx*ddx + ddy*ddy;
+      let tStar = 0;
+      if (denom > 1e-9) {
+        tStar = -(dx*ddx + dy*ddy) / denom;
+        if (tStar < 0) tStar = 0;
+      }
+      const mvx = dx + tStar*ddx, mvy = dy + tStar*ddy;
+      if (Math.hypot(mvx, mvy) > suppress) continue;
+    }
+    const Mp = matVec(M, [ddx, ddy]);
+    ux -= c2_t * Mp[0];
+    uy -= c2_t * Mp[1];
+  }
+  return [ux, uy];
+}
+
+// ============================================================
+// SCENARIO-SPECIFIC β (walls)
+// ============================================================
+function applyHorizontalWall(qi, pi, wallY, inwardY) {
+  const absDist = Math.abs(qi[1] - wallY);
+  const z = sigmaNorm([0, absDist], EPS);
+  const dSigma = sigmaNorm(D_B, EPS);
+  if (z > dSigma) return [0, 0];
+  const mag = -phiBeta(z, D_B, H_B, EPS);
+  const bik = rho(z / dSigma, H_B);
+  let uy = C1_B * mag * inwardY + C2_B * bik * (0 - pi[1]);
+  return [0, uy];
+}
+function applyVerticalWall(qi, pi, wallX, inwardX) {
+  const absDist = Math.abs(qi[0] - wallX);
+  const z = sigmaNorm([absDist, 0], EPS);
+  const dSigma = sigmaNorm(D_B, EPS);
+  if (z > dSigma) return [0, 0];
+  const mag = -phiBeta(z, D_B, H_B, EPS);
+  const bik = rho(z / dSigma, H_B);
+  let ux = C1_B * mag * inwardX + C2_B * bik * (0 - pi[0]);
+  return [ux, 0];
+}
+
+function forceBetaCorridor(i, q, p, params) {
+  const qi = q[i], pi = p[i];
+  let ux = 0, uy = 0;
+  const top = applyHorizontalWall(qi, pi, params.yHi, -1);
+  ux += top[0]; uy += top[1];
+  const bot = applyHorizontalWall(qi, pi, 0, +1);
+  ux += bot[0]; uy += bot[1];
+  return [ux, uy];
+}
+function forceBetaCross(i, q, p, params) {
+  const qi = q[i], pi = p[i];
+  let ux = 0, uy = 0;
+  const hr = params.halfRoad;
+  const hi = params.halfInter;
+  const x = qi[0], y = qi[1];
+  if (Math.abs(x) <= hi && Math.abs(y) <= hi) return [0, 0];
+  const inHoriz = Math.abs(y) <= hr && Math.abs(x) > hi;
+  const inVert  = Math.abs(x) <= hr && Math.abs(y) > hi;
+  if (inHoriz) {
+    const top = applyHorizontalWall(qi, pi, +hr, -1);
+    const bot = applyHorizontalWall(qi, pi, -hr, +1);
+    ux += top[0]+bot[0]; uy += top[1]+bot[1];
+  }
+  if (inVert) {
+    const right = applyVerticalWall(qi, pi, +hr, -1);
+    const left  = applyVerticalWall(qi, pi, -hr, +1);
+    ux += right[0]+left[0]; uy += right[1]+left[1];
+  }
+  if (!inHoriz && !inVert) {
+    // off-road corner, push toward nearest road
+    if (Math.abs(qi[0]) < Math.abs(qi[1])) {
+      ux += -C1_B * Math.sign(qi[0]);
+    } else {
+      uy += -C1_B * Math.sign(qi[1]);
+    }
+  }
+  return [ux, uy];
+}
+function forceBetaMerge(i, q, p, params) {
+  const qi = q[i], pi = p[i];
+  const x = qi[0], y = qi[1];
+  const L = params.lMerge;
+  const mt = 7.0, mb = 0.0, rb = -7.0;
+  let topW, botW;
+  if (x < 0) {
+    if (y >= 0) { topW = mt; botW = mb; }
+    else        { topW = mb; botW = rb; }
+  } else if (x <= L) {
+    const frac = x / L;
+    botW = rb + (mb - rb) * frac;
+    topW = mt;
+  } else {
+    topW = mt; botW = mb;
+  }
+  let ux = 0, uy = 0;
+  const top = applyHorizontalWall(qi, pi, topW, -1);
+  const bot = applyHorizontalWall(qi, pi, botW, +1);
+  ux += top[0]+bot[0]; uy += top[1]+bot[1];
+  return [ux, uy];
+}
+
+// ============================================================
+// SIMULATION CORE
+// ============================================================
+class Sim {
+  constructor() {
+    this.q = [];           // positions [[x,y], ...]
+    this.p = [];           // velocities
+    this.flockId = [];     // 1-indexed
+    this.colors = [];      // per-agent color string
+    this.params = {};
+    this.scenario = 'corridor';
+    this.elapsed = 0;
+    this.metrics = {};
+  }
+  init(scenario, params) {
+    this.scenario = scenario;
+    this.params = params;
+    this.q = []; this.p = []; this.flockId = []; this.colors = [];
+    this.elapsed = 0;
+    this.metrics = { interMin: Infinity, offRoad: 0, frames: 0 };
+    if (scenario === 'corridor') this._initCorridor();
+    else if (scenario === 'intersection') this._initIntersection();
+    else if (scenario === 'merge') this._initMerge();
+  }
+  _initCorridor() {
+    const p = this.params;
+    const v_d = p.v_d;
+    const N = p.N, rows = p.rows || 1;
+    const yMid = p.yHi / 2;
+    const dyOff = p.dy;
+    const xInner = 20;
+    const palette = ['var(--car-1)', 'var(--car-2)'];
+    p.p_d_per_flock = { 1: [+v_d, 0], 2: [-v_d, 0] };
+    // Row spacing fits within the road; clamp to road width minus margins.
+    const maxRowSpan = p.yHi - 2;
+    const rowSpacing = rows > 1 ? Math.min(D_A, maxRowSpan / (rows - 1)) : 0;
+    for (let row = 0; row < rows; row++) {
+      const dyRow = (row - (rows - 1) / 2) * rowSpacing;
+      for (let k = 0; k < N; k++) {
+        const x = -xInner - (N - 1 - k) * D_A;
+        this.q.push([x, yMid - dyOff/2 + dyRow]);
+        this.p.push([+v_d, 0]);
+        this.flockId.push(1);
+        this.colors.push(palette[0]);
+      }
+    }
+    for (let row = 0; row < rows; row++) {
+      const dyRow = (row - (rows - 1) / 2) * rowSpacing;
+      for (let k = 0; k < N; k++) {
+        const x = +xInner + k * D_A;
+        this.q.push([x, yMid + dyOff/2 + dyRow]);
+        this.p.push([-v_d, 0]);
+        this.flockId.push(2);
+        this.colors.push(palette[1]);
+      }
+    }
+  }
+  _initIntersection() {
+    const p = this.params;
+    const v_d = p.v_d;
+    const N = p.N, rows = p.rows || 1;
+    const dist = 60;
+    const off = p.halfRoad / 2;
+    const halfLane = p.halfRoad / 2;
+    // Within-lane row spacing
+    const rowSpacing = rows > 1 ? Math.min(D_A * 0.6, halfLane * 1.4 / (rows - 1)) : 0;
+    const dirs = ['E', 'W', 'N', 'S'];
+    const palette = ['var(--car-1)', 'var(--car-2)', 'var(--car-3)', 'var(--car-4)'];
+    p.p_d_per_flock = {};
+    for (let d = 0; d < 4; d++) {
+      let vx, vy, x0, y0, ax;
+      switch (dirs[d]) {
+        case 'E': vx=+v_d; vy=0; x0=-dist; y0=+off; ax='x'; break;
+        case 'W': vx=-v_d; vy=0; x0=+dist; y0=-off; ax='x'; break;
+        case 'N': vx=0; vy=+v_d; x0=+off; y0=-dist; ax='y'; break;
+        case 'S': vx=0; vy=-v_d; x0=-off; y0=+dist; ax='y'; break;
+      }
+      p.p_d_per_flock[d+1] = [vx, vy];
+      for (let row = 0; row < rows; row++) {
+        const rowOff = (row - (rows - 1) / 2) * rowSpacing;
+        for (let k = 0; k < N; k++) {
+          let qx, qy;
+          if (ax === 'x') {
+            const sign = (dirs[d] === 'E') ? +1 : -1;
+            qx = x0 - sign*k*D_A; qy = y0 + rowOff;
+          } else {
+            const sign = (dirs[d] === 'N') ? +1 : -1;
+            qx = x0 + rowOff; qy = y0 - sign*k*D_A;
+          }
+          this.q.push([qx, qy]);
+          this.p.push([vx, vy]);
+          this.flockId.push(d+1);
+          this.colors.push(palette[d]);
+        }
+      }
+    }
+  }
+  _initMerge() {
+    const p = this.params;
+    const N_main = p.N_main, N_ramp = p.N_ramp;
+    const mainRows = p.main_rows || 1;
+    const rampRows = p.ramp_rows || 1;
+    const vMain = p.v_main, vRamp = p.v_ramp;
+    const leadX = -40;
+    p.p_d_per_flock = { 1: [+vMain, 0] };
+    const palette = ['var(--car-1)', 'var(--car-2)'];
+    // Lane is 7 m wide; with 2 rows place them at ±1.75 from lane center.
+    const laneCenterMain = 3.5;     // main road centerline
+    const laneCenterRamp = -3.5;    // on-ramp centerline
+    const rowSpacingMain = mainRows > 1 ? Math.min(D_A, 5) / Math.max(1, mainRows - 1) : 0;
+    const rowSpacingRamp = rampRows > 1 ? Math.min(D_A, 5) / Math.max(1, rampRows - 1) : 0;
+    if (N_main > 0) {
+      const xCenter = leadX - (N_main - 1)*D_A/2;
+      for (let row = 0; row < mainRows; row++) {
+        const dyRow = (row - (mainRows - 1) / 2) * rowSpacingMain;
+        for (let k = 0; k < N_main; k++) {
+          this.q.push([xCenter + (k - (N_main-1)/2)*D_A, laneCenterMain + dyRow]);
+          this.p.push([+vMain, 0]);
+          this.flockId.push(1);
+          this.colors.push(palette[0]);
+        }
+      }
+    }
+    if (N_ramp > 0) {
+      const xCenter = leadX - p.stagger - (N_ramp - 1)*D_A/2;
+      for (let row = 0; row < rampRows; row++) {
+        const dyRow = (row - (rampRows - 1) / 2) * rowSpacingRamp;
+        for (let k = 0; k < N_ramp; k++) {
+          this.q.push([xCenter + (k - (N_ramp-1)/2)*D_A, laneCenterRamp + dyRow]);
+          this.p.push([+vRamp, 0]);
+          this.flockId.push(1);   // same-flock-id approach
+          this.colors.push(palette[1]);
+        }
+      }
+    }
+  }
+  step(dt) {
+    const N = this.q.length;
+    const u = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const fa = forceAlpha(i, this.q, this.p, this.flockId);
+      const fg = forceGamma(i, this.p, this.flockId, this.params.p_d_per_flock);
+      const ft = (this.params.tauOn !== false) ? forceTau(i, this.q, this.p, this.flockId, this.params) : [0, 0];
+      let fb;
+      if (this.scenario === 'corridor')      fb = forceBetaCorridor(i, this.q, this.p, this.params);
+      else if (this.scenario === 'intersection') fb = forceBetaCross(i, this.q, this.p, this.params);
+      else                                    fb = forceBetaMerge(i, this.q, this.p, this.params);
+      let ux = fa[0]+fb[0]+fg[0]+ft[0];
+      let uy = fa[1]+fb[1]+fg[1]+ft[1];
+      const mag = Math.hypot(ux, uy);
+      if (mag > A_MAX) { ux *= A_MAX/mag; uy *= A_MAX/mag; }
+      u[i] = [ux, uy];
+    }
+    for (let i = 0; i < N; i++) {
+      this.p[i][0] += dt * u[i][0];
+      this.p[i][1] += dt * u[i][1];
+      this.q[i][0] += dt * this.p[i][0];
+      this.q[i][1] += dt * this.p[i][1];
+    }
+    this.elapsed += dt;
+    this._updateMetrics();
+  }
+  _updateMetrics() {
+    let inter = this.metrics.interMin;
+    const N = this.q.length;
+    for (let i = 0; i < N; i++) {
+      for (let j = i+1; j < N; j++) {
+        if (this.scenario === 'merge') {
+          // same flock id, but tracked colors define lanes
+          if (this.colors[i] === this.colors[j]) continue;
+        } else {
+          if (this.flockId[i] === this.flockId[j]) continue;
+        }
+        const dx = this.q[i][0]-this.q[j][0];
+        const dy = this.q[i][1]-this.q[j][1];
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < inter) inter = d;
+      }
+    }
+    this.metrics.interMin = inter;
+    // off-road detection per scenario
+    let off = 0;
+    if (this.scenario === 'corridor') {
+      for (let i = 0; i < N; i++) {
+        if (this.q[i][1] < 0 || this.q[i][1] > this.params.yHi) off++;
+      }
+    } else if (this.scenario === 'intersection') {
+      const hr = this.params.halfRoad;
+      for (let i = 0; i < N; i++) {
+        const x = this.q[i][0], y = this.q[i][1];
+        if (Math.abs(x) > hr && Math.abs(y) > hr) off++;
+      }
+    } else if (this.scenario === 'merge') {
+      const L = this.params.lMerge;
+      for (let i = 0; i < N; i++) {
+        const x = this.q[i][0], y = this.q[i][1];
+        let inRoad;
+        if (x < 0) inRoad = (y >= 0 && y <= 7) || (y >= -7 && y <= 0);
+        else if (x <= L) {
+          const bot = -7 + 7 * (x/L);
+          inRoad = (y >= bot - 0.1 && y <= 7.1);
+        } else {
+          inRoad = (y >= -0.1 && y <= 7.1);
+        }
+        if (!inRoad) off++;
+      }
+    }
+    this.metrics.offRoadInstantaneous = off;
+    this.metrics.offRoad = Math.max(this.metrics.offRoad, off);
+    this.metrics.frames++;
+  }
+}
+
+// ============================================================
+// RENDERER (canvas)
+// ============================================================
+class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.dpr = window.devicePixelRatio || 1;
+  }
+  resize() {
+    const r = this.canvas.getBoundingClientRect();
+    this.canvas.width  = Math.round(r.width  * this.dpr);
+    this.canvas.height = Math.round(r.height * this.dpr);
+  }
+  _worldToScreen(sim) {
+    // viewport per scenario
+    let xMin, xMax, yMin, yMax;
+    const N = sim.q.length;
+    if (sim.scenario === 'corridor') {
+      xMin = -110; xMax = 110; yMin = -2; yMax = sim.params.yHi + 2;
+    } else if (sim.scenario === 'intersection') {
+      const ext = 110;
+      xMin = -ext; xMax = ext; yMin = -ext; yMax = ext;
+    } else {
+      xMin = -120; xMax = 120; yMin = -12; yMax = 12;
+    }
+    const w = this.canvas.width, h = this.canvas.height;
+    const wxRange = xMax - xMin, wyRange = yMax - yMin;
+    const sx = w / wxRange, sy = h / wyRange;
+    const s = Math.min(sx, sy);
+    const offX = (w - s * wxRange) / 2 - xMin * s;
+    const offY = h - ((h - s * wyRange) / 2 + (-yMin) * s);
+    // x: world x → screen x = offX + s*wx
+    // y: world y → screen y = offY - s*wy (flip y)
+    return { s, offX, offY, xMin, xMax, yMin, yMax };
+  }
+  draw(sim) {
+    const ctx = this.ctx;
+    const W = this.canvas.width, H = this.canvas.height;
+    ctx.fillStyle = '#0e1424';
+    ctx.fillRect(0, 0, W, H);
+    const tr = this._worldToScreen(sim);
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+    ctx.lineWidth = 1;
+    const step = 10 * tr.s;
+    if (step > 5) {
+      const x0 = Math.floor(tr.xMin/10)*10;
+      const y0 = Math.floor(tr.yMin/10)*10;
+      for (let x = x0; x <= tr.xMax + 10; x += 10) {
+        const sx = tr.offX + x * tr.s;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+      }
+      for (let y = y0; y <= tr.yMax + 10; y += 10) {
+        const sy = tr.offY - y * tr.s;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+      }
+    }
+    // walls
+    ctx.strokeStyle = '#5b6788';
+    ctx.lineWidth = 2 * this.dpr;
+    if (sim.scenario === 'corridor') {
+      this._line(tr, tr.xMin, 0, tr.xMax, 0);
+      this._line(tr, tr.xMin, sim.params.yHi, tr.xMax, sim.params.yHi);
+    } else if (sim.scenario === 'intersection') {
+      const hr = sim.params.halfRoad, hi = sim.params.halfInter;
+      this._line(tr, tr.xMin, -hr, -hi, -hr);
+      this._line(tr,    +hi, -hr, tr.xMax, -hr);
+      this._line(tr, tr.xMin, +hr, -hi, +hr);
+      this._line(tr,    +hi, +hr, tr.xMax, +hr);
+      this._line(tr, -hr, tr.yMin, -hr, -hi);
+      this._line(tr, -hr,    +hi, -hr, tr.yMax);
+      this._line(tr, +hr, tr.yMin, +hr, -hi);
+      this._line(tr, +hr,    +hi, +hr, tr.yMax);
+      // dashed lane centerlines
+      ctx.setLineDash([6, 8]);
+      ctx.strokeStyle = 'rgba(120, 140, 180, 0.35)';
+      this._line(tr, tr.xMin, 0, -hi, 0);
+      this._line(tr, +hi, 0, tr.xMax, 0);
+      this._line(tr, 0, tr.yMin, 0, -hi);
+      this._line(tr, 0, +hi, 0, tr.yMax);
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#5b6788';
+    } else {  // merge
+      const L = sim.params.lMerge;
+      this._line(tr, tr.xMin, 7, tr.xMax, 7);
+      this._line(tr, tr.xMin, 0, 0, 0);
+      this._line(tr, L, 0, tr.xMax, 0);
+      this._line(tr, tr.xMin, -7, 0, -7);
+      this._line(tr, 0, -7, L, 0);
+    }
+    // agents
+    const carCol = (cssVar) => getComputedStyle(document.documentElement).getPropertyValue(cssVar.match(/--[\w-]+/)?.[0] || '--car-1').trim() || '#5dade2';
+    for (let i = 0; i < sim.q.length; i++) {
+      const sx = tr.offX + sim.q[i][0] * tr.s;
+      const sy = tr.offY - sim.q[i][1] * tr.s;
+      ctx.fillStyle = carCol(sim.colors[i]);
+      ctx.beginPath();
+      const radius = Math.max(3, 5 * this.dpr);
+      ctx.arc(sx, sy, radius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1 * this.dpr;
+      ctx.stroke();
+      // velocity arrow
+      const v = sim.p[i];
+      const vmag = Math.hypot(v[0], v[1]);
+      if (vmag > 0.1) {
+        const ax = sx + v[0] * 0.5 * tr.s, ay = sy - v[1] * 0.5 * tr.s;
+        ctx.strokeStyle = carCol(sim.colors[i]);
+        ctx.lineWidth = 1.5 * this.dpr;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ax, ay); ctx.stroke();
+      }
+    }
+  }
+  _line(tr, x1, y1, x2, y2) {
+    const ctx = this.ctx;
+    const s = tr.s, ox = tr.offX, oy = tr.offY;
+    ctx.beginPath();
+    ctx.moveTo(ox + x1*s, oy - y1*s);
+    ctx.lineTo(ox + x2*s, oy - y2*s);
+    ctx.stroke();
+  }
+}
+
+// ============================================================
+// SCENARIO DEFINITIONS (params + sliders)
+// ============================================================
+const SCENARIOS = {
+  corridor: {
+    name: 'Corridor (1D opposing flocks)',
+    desc: 'Two opposing flocks travel through a corridor with hard walls. McKenzie\'s τ-agent deflects them into separate lanes. Tune the closing speed, road width, initial y-offset, and cooperation distance to find the safe operating range.',
+    legend: '<span class="swatch" style="background:#5dade2"></span> East-bound &nbsp; <span class="swatch" style="background:#f1948a"></span> West-bound',
+    params: {
+      N:    { label: 'Cars per row',            min: 2, max: 10, step: 1, default: 4 },
+      rows: { label: 'Rows per flock',          min: 1, max: 3,  step: 1, default: 1 },
+      v_d:  { label: 'Closing speed v_d (m/s)', min: 3, max: 25, step: 1, default: 10 },
+      yHi:  { label: 'Road width (m)',          min: 8, max: 24, step: 1, default: 14 },
+      dy:   { label: 'Initial y-offset (m)',    min: 0, max: 8,  step: 0.5, default: 0 },
+      d_c:  { label: 'Cooperation d_c (m)',     min: 15, max: 80, step: 5,  default: 40 },
+      c2_t: { label: 'τ-strength c2_t',         min: 0.02, max: 0.30, step: 0.01, default: 0.08 },
+    },
+    extra: { tauMatrix: RP, suppressTh: null, tauOn: true },
+  },
+  intersection: {
+    name: 'Intersection (4-way cross)',
+    desc: 'Four flocks approach a cross intersection from cardinal directions. The R(+90°) rotation matrix induces a right-turn pattern. Increase road width to give curving cars more swing space; high speeds catastrophically launch cars through the corner gaps.',
+    legend: '<span class="swatch" style="background:#5dade2"></span> East <span class="swatch" style="background:#f1948a"></span> West <span class="swatch" style="background:#82e0aa"></span> North <span class="swatch" style="background:#f9b67c"></span> South',
+    params: {
+      N:        { label: 'Cars per flock',     min: 2, max: 6,  step: 1, default: 4 },
+      v_d:      { label: 'Closing speed (m/s)',min: 3, max: 15, step: 1, default: 10 },
+      halfRoad: { label: 'Road half-width (m)',min: 5, max: 16, step: 1, default: 7 },
+      d_c:      { label: 'Cooperation d_c (m)',min: 30, max: 120, step: 5, default: 70 },
+      c2_t:     { label: 'τ-strength c2_t',    min: 0.05, max: 0.30, step: 0.01, default: 0.15 },
+    },
+    extra: { halfInter: null, tauMatrix: RP, suppressTh: null, tauOn: true },
+  },
+  merge: {
+    name: 'Merge (main road + on-ramp)',
+    desc: 'A main road and an on-ramp meet at a tapering merge zone. The on-ramp\'s outer wall ramps up, geometrically forcing cars into the main road. Try varying the merge zone length, on-ramp speed, and arrival stagger — speed mismatch and stagger both create natural slot-in behavior.',
+    legend: '<span class="swatch" style="background:#5dade2"></span> Main-road cars &nbsp; <span class="swatch" style="background:#f1948a"></span> On-ramp cars',
+    params: {
+      N_main:  { label: 'Main road cars',     min: 1, max: 10, step: 1, default: 4 },
+      N_ramp:  { label: 'On-ramp cars',       min: 0, max: 10, step: 1, default: 4 },
+      v_main:  { label: 'Main road speed',    min: 5, max: 15, step: 1, default: 10 },
+      v_ramp:  { label: 'On-ramp speed',      min: 3, max: 18, step: 1, default: 10 },
+      lMerge:  { label: 'Merge zone length',  min: 10, max: 80, step: 5, default: 30 },
+      stagger: { label: 'On-ramp stagger (m)', min: 0, max: 50, step: 1, default: 0 },
+      d_c:     { label: 'Cooperation d_c (m)', min: 20, max: 80, step: 5, default: 40 },
+      c2_t:    { label: 'τ-strength c2_t',    min: 0.0, max: 0.30, step: 0.01, default: 0.08 },
+    },
+    extra: { tauMatrix: RP, suppressTh: null, tauOn: true },
+  },
+};
+
+// ============================================================
+// UI
+// ============================================================
+const sim = new Sim();
+const canvas = document.getElementById('sim');
+const renderer = new Renderer(canvas);
+let currentScenario = 'corridor';
+let playing = true;
+let simSpeed = 1.0;
+
+function defaultParams(scenario) {
+  const def = SCENARIOS[scenario];
+  const p = { ...def.extra };
+  for (const k in def.params) p[k] = def.params[k].default;
+  if (scenario === 'intersection') p.halfInter = p.halfRoad;
+  return p;
+}
+
+function buildParamUI() {
+  const def = SCENARIOS[currentScenario];
+  const root = document.getElementById('params');
+  root.innerHTML = '';
+  for (const key in def.params) {
+    const spec = def.params[key];
+    const div = document.createElement('div');
+    div.className = 'param';
+    const value = sim.params[key];
+    const step = spec.step;
+    const display = step < 1 ? value.toFixed(2) : value.toString();
+    div.innerHTML = `
+      <label>${spec.label}</label>
+      <span class="val" data-key="${key}">${display}</span>
+      <input type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${value}" data-key="${key}">
+    `;
+    root.appendChild(div);
+  }
+  // τ on/off toggle
+  const togDiv = document.createElement('div');
+  togDiv.className = 'param toggle';
+  togDiv.innerHTML = `
+    <label>τ-agent enabled</label>
+    <label class="switch">
+      <input type="checkbox" id="tau-on" ${sim.params.tauOn !== false ? 'checked' : ''}>
+      <span class="slider-bg"></span>
+    </label>
+  `;
+  root.appendChild(togDiv);
+  document.getElementById('tau-on').addEventListener('change', e => {
+    sim.params.tauOn = e.target.checked;
+  });
+
+  root.querySelectorAll('input[type=range]').forEach(input => {
+    input.addEventListener('input', e => {
+      const key = e.target.dataset.key;
+      const val = parseFloat(e.target.value);
+      const spec = def.params[key];
+      sim.params[key] = val;
+      if (currentScenario === 'intersection' && key === 'halfRoad') {
+        sim.params.halfInter = val;
+      }
+      const display = spec.step < 1 ? val.toFixed(2) : val.toString();
+      root.querySelector(`.val[data-key="${key}"]`).textContent = display;
+      // Reset sim on parameter change (cleanest)
+      sim.init(currentScenario, sim.params);
+    });
+  });
+}
+
+function buildMetricsUI() {
+  const root = document.getElementById('metrics');
+  root.innerHTML = `
+    <div class="metric" id="m-inter">
+      <div class="label">${currentScenario === 'merge' ? 'Pair min' : 'Inter-flock min'}</div>
+      <div class="value">—</div>
+    </div>
+    <div class="metric" id="m-offroad">
+      <div class="label">Off-road peak</div>
+      <div class="value">—</div>
+    </div>
+    <div class="metric" id="m-elapsed">
+      <div class="label">Elapsed</div>
+      <div class="value">0.00 s</div>
+    </div>
+    <div class="metric" id="m-agents">
+      <div class="label">Agents</div>
+      <div class="value">${sim.q.length}</div>
+    </div>
+  `;
+}
+
+function updateMetricsUI() {
+  const interEl = document.querySelector('#m-inter .value');
+  const offEl = document.querySelector('#m-offroad .value');
+  const elapEl = document.querySelector('#m-elapsed .value');
+  const interVal = sim.metrics.interMin;
+  if (Number.isFinite(interVal)) {
+    interEl.textContent = interVal.toFixed(2) + ' m';
+    const m = document.getElementById('m-inter');
+    m.classList.toggle('warn', interVal < 2.0);
+    m.classList.toggle('good', interVal >= 4.0);
+  } else interEl.textContent = '∞';
+  offEl.textContent = sim.metrics.offRoad.toString();
+  const m2 = document.getElementById('m-offroad');
+  m2.classList.toggle('warn', sim.metrics.offRoad > 0);
+  elapEl.textContent = sim.elapsed.toFixed(2) + ' s';
+}
+
+function setScenario(name) {
+  currentScenario = name;
+  document.querySelectorAll('#nav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.scenario === name);
+  });
+  sim.params = defaultParams(name);
+  sim.init(name, sim.params);
+  buildParamUI();
+  buildMetricsUI();
+  document.getElementById('desc').textContent = SCENARIOS[name].desc;
+  document.getElementById('legend').innerHTML = SCENARIOS[name].legend;
+}
+
+document.querySelectorAll('#nav button').forEach(b => {
+  b.addEventListener('click', () => setScenario(b.dataset.scenario));
+});
+document.getElementById('play').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
+});
+document.getElementById('reset').addEventListener('click', () => {
+  sim.init(currentScenario, sim.params);
+});
+document.getElementById('speed').addEventListener('input', e => {
+  simSpeed = parseFloat(e.target.value);
+  document.getElementById('speed-val').textContent = simSpeed.toFixed(2) + '×';
+});
+window.addEventListener('resize', () => { renderer.resize(); });
+
+// Main loop
+function loop() {
+  if (playing) {
+    // Run multiple substeps for stability + speed
+    const TS = 0.02;
+    const stepsPerFrame = Math.max(1, Math.round(simSpeed * 1));
+    for (let i = 0; i < stepsPerFrame; i++) sim.step(TS);
+  }
+  renderer.draw(sim);
+  updateMetricsUI();
+  requestAnimationFrame(loop);
+}
+
+setScenario('corridor');
+renderer.resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

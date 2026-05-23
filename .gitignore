@@ -1,0 +1,28 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Generated artifacts produced by experiment runs in arbitrary cwd.
+# Tracked outputs live in figures/ and animations/.
+/*.png
+/*.gif
+
+# Editor backups
+*~
+*.bak
