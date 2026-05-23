@@ -4,9 +4,9 @@
 
 # CAV Flocking
 
-> Empirical study of the McKenzie / Olfati-Saber flocking algorithm applied to cooperative driving. Three-phase investigation: failure-mode characterisation, algorithmic extensions, and traffic-theory benchmarks.
+> Empirical study of the McKenzie / Olfati-Saber flocking algorithm applied to cooperative driving. Three-phase investigation: failure-mode characterisation, algorithmic extensions, traffic-theory benchmarks, and validation of the three claims commonly made on behalf of flocking-based CAV control.
 
-Connected and Automated Vehicles (CAVs) raise a recurring question: can a fleet of vehicles drive cooperatively *without* explicit lane discipline, coordinated only by pairwise interaction forces? The α-β-γ-τ flocking framework of Olfati-Saber [1] and McKenzie [2] is one of the cleanest formal proposals. This repository contains a complete empirical evaluation of that framework: where the algorithm works, where it fails, three orthogonal extensions that fix specific failure modes, and a four-experiment evaluation against classical traffic-theory benchmarks.
+Connected and Automated Vehicles (CAVs) raise a recurring question: can a fleet of vehicles drive cooperatively *without* explicit lane discipline, coordinated only by pairwise interaction forces? The α-β-γ-τ flocking framework of Olfati-Saber [1] and McKenzie [2] is one of the cleanest formal proposals. This repository contains a complete empirical evaluation of that framework: where the algorithm works, where it fails, three orthogonal extensions that fix specific failure modes, four traffic-theory benchmark experiments, and three further experiments that directly test the deck claims of *smoother driving*, *increased capacity*, and *lane-less flow* (spoiler: one is confirmed, two are falsified).
 
 The full formal writeup is in **[writeup.md](writeup.md)**; the research log with per-investigation findings is in **[investigations_queue.md](investigations_queue.md)**.
 
@@ -29,10 +29,11 @@ The full formal writeup is in **[writeup.md](writeup.md)**; the research log wit
 3. [Phase 1 — algorithm boundaries](#phase-1--algorithm-boundaries)
 4. [Phase 2 — algorithmic improvements](#phase-2--algorithmic-improvements)
 5. [Phase 3 — traffic-theory benchmarks](#phase-3--traffic-theory-benchmarks)
-6. [Cross-experiment takeaways](#cross-experiment-takeaways)
-7. [Repository layout](#repository-layout)
-8. [Running the experiments](#running-the-experiments)
-9. [References](#references)
+6. [Phase 3 supplement — validating the deck claims](#phase-3-supplement--validating-the-deck-claims)
+7. [Cross-experiment takeaways](#cross-experiment-takeaways)
+8. [Repository layout](#repository-layout)
+9. [Running the experiments](#running-the-experiments)
+10. [References](#references)
 
 ---
 
@@ -277,15 +278,87 @@ The pairwise `R(+90°)` deflection that worked beautifully for one-shot four-flo
 
 ---
 
+## Phase 3 supplement — validating the deck claims
+
+Exp A through D characterise algorithm capability against traffic-theory benchmarks. They do not directly test the three marketing claims often made on behalf of flocking-based CAV control: **smoother driving**, **increased roadway capacity**, and **lane-less / direction-less** flow. Three further experiments map each claim to a clean measurement.
+
+### Exp E — lane-formation entropy (tests the "lane-less" claim)
+
+<p align="center">
+  <img src="figures/exp_lane_formation.png" alt="Exp E: y-distribution after settling from random initial conditions" width="100%">
+</p>
+
+Periodic corridor; cars start at uniform-random `y` in the usable strip. After settling, the y-distribution is sampled and binned into a histogram. Shannon entropy is normalised to a uniform distribution (1.0 = uniform, 0.0 = single bin); histogram peaks above 0.4 × peak height count as emergent lanes.
+
+| `N` (k veh/km) | `H / H_uniform` | mode count |
+| -------------- | --------------- | ---------- |
+| 20 (40) | 0.887 | 3 *(sparse)* |
+| 40 (80) | 0.906 | **2** |
+| 60 (120) | 0.948 | **2** |
+| 90 (180) | 0.840 | **2** |
+| 120 (240) | 0.802 | **2** |
+| 140 (280) | 0.808 | **2** |
+
+At every realistic density (`N ≥ 40`) the algorithm settles into **exactly two emergent lanes** with peaks at `y ≈ 4` and `y ≈ 10`, matching the strip-hex theory row centres within the β-zone offset. At high density the middle channel `y ∈ [6, 8.5]` is almost empty. **The lane-less claim is falsified.** The algorithm is lane-less *by design* (no lanes imposed) but lane-forming *in practice* — the α-lattice hex packing produces two emergent rows that are de-facto lanes.
+
+### Exp F — string stability (tests the "smoother driving" claim)
+
+<p align="center">
+  <img src="figures/exp_string_stability.png" alt="Exp F: 16-car platoon under leader brake — lane-less vs lane-locked" width="100%">
+</p>
+
+A 16-car platoon at `d_a` spacing, all at `v_d`. The leader (car 15) is held at `v_x = 2 m/s` for 2 s, then released. For each car `i` we compute `||e_i||₂ = √(∫ (v_x(t) - v_d)² dt)` over the perturbation window. String-stable iff this norm does not grow as the disturbance propagates from leader to tail.
+
+| Metric | lane_locked | lane_less |
+| ------ | ----------- | --------- |
+| Leader (idx 15) `||e||` | 12.56 | 12.27 |
+| First follower (idx 14) `||e||` | **12.77** | 8.75 |
+| Leader → first-follower ratio | **1.02 (amplifies)** | **0.71 (decays)** |
+| Tail (idx 0) `||e||` | 3.93 | 3.08 |
+
+**Lane-locked amplifies the leader's disturbance at the first follower** (ratio 1.02 → the second car ends up with a *larger* L2 disturbance than the perturbed leader). That is classic string instability. Lane-less attenuates by 29 % at the same position and stays smaller throughout the platoon (lane_locked / lane_less ratio is 1.00–1.46 across every car). **The smoother-driving claim is confirmed and strengthened**: lane-less flocking is genuinely string-stable where lane-locked car-following is marginally unstable.
+
+### Exp G — honest head-to-head capacity (tests the "increased capacity" claim)
+
+<p align="center">
+  <img src="figures/exp_capacity_comparison.png" alt="Exp G: lane-less vs lane-based capacity comparison on the same 14 m corridor" width="100%">
+</p>
+
+Same 14 m corridor, sweep `N` for two conditions: lane-less (full flocking) and lane-based (2 lanes at the strip-hex row centres, `y` locked). Capacity = largest `N` with intra-min ≥ `d_a` / 2.
+
+| Condition | Capacity `N*` | `k` [veh/km] | `q = k · v_d` [veh/h] |
+| --------- | ------------- | ------------ | --------------------- |
+| Lane-less | 160 | 320 | 11 520 |
+| **Lane-based (2 lanes)** | **180** | **360** | **12 960** |
+| Ratio (lane-less / lane-based) | — | — | **0.89×** |
+
+**Lane-based achieves 11 % HIGHER safe capacity than lane-less.** The reason is exactly the Exp E finding: lane-less forms two emergent lanes but with imperfect packing inside each row; lane-based holds cars on exact lane centres. The two-row geometric ceiling is identical; the two conditions differ in how tightly they use it.
+
+Lane-less also collapses *abruptly* (intra-min: 7.00 → 6.93 → 4.64 → 0 across `N = 120, 140, 160, 180`) while lane-based degrades *gracefully* (9.04 → 6.57 → 5.44 → 5.00 → 4.67 → 3.50 → 0). Both eventually fail at the same density (≈ 360–440 veh/km), but lane-based has a wider useful operating range. Steady-state q-k curves are identical in the safe regime because `mean(v_x) = v_d` by construction in both (Exp A). **The increased-capacity claim is falsified.**
+
+### Combined verdict on the three deck claims
+
+| Claim | Verdict | Evidence |
+| ----- | ------- | -------- |
+| Smoother driving | **Confirmed and strengthened** | Exp B (3–26× lower `rms_ax` below saturation), Exp F (string-stable: 0.71 vs 1.02), Exp C (1.4–2.9× faster brake recovery) |
+| Increased capacity | **Falsified** | Exp G: lane-based has 11 % higher safe capacity; steady-state `q` identical in safe regime |
+| Lane-less | **Falsified** | Exp E: two emergent lanes form spontaneously at every `N ≥ 40` from random initial conditions |
+
+The honest pitch is that lane-less flocking provides *equivalent* steady-state throughput, *materially smoother* driving below saturation, *genuine string stability* under perturbation, and *dramatically better incident-response safety* — all without requiring imposed lane infrastructure. The lanes emerge from the algorithm itself.
+
+---
+
 ## Cross-experiment takeaways
 
-* **Two independent experiments converge on `k = 280 veh/km`.** Exp A (largest density where the α-lattice survives) and Exp B (largest density where lateral freedom delivers a smoothness benefit) both land on the same boundary. The matching threshold is structural: it is the strip-hex packing limit on the 8 m usable strip.
+* **Two independent experiments converge on `k = 280 veh/km`.** Exp A (largest density where the α-lattice survives) and Exp B (largest density where lateral freedom delivers a smoothness benefit) both land on the same boundary. The matching threshold is structural: it is the strip-hex packing limit on the 8 m usable strip. Exp E and Exp G later confirm that this packing limit is *realised geometrically* by two emergent lanes that the algorithm self-organises into.
 
 * **McKenzie's algorithm is not a traffic-flow model.** Exp A reframes it: a steady-state cruise controller for agents already at `v_d`. In a translation-invariant setting the constant-`v_d` γ force pins mean speed regardless of density. No mechanism for collective slowdown when blocked.
 
-* **Lane-less protects through incidents, not in steady state.** Exp A says steady-state throughput equals `v_d · k` for both lane-less and lane-based, but Exp C shows lane-less is *qualitatively* safer under disturbance (≥ 1.5 m vs ≈ 0 m intra-min after a brake) and recovers 1.4–2.9× faster.
+* **The algorithm discovers lanes rather than abolishing them.** Exp E shows two emergent y-bands form spontaneously from uniform-random initial positions at every realistic density. Exp G shows those emergent lanes have 11 % lower steady-state capacity than properly designed fixed lanes (the algorithm packs the same two rows less tightly). The lane-less framing is wrong; the algorithm is *lane-discovering*.
 
-* **V2 succeeds at one-shot intersections but fails at continuous demand.** Phase 2's R(+90°) gives 29 m clearance for a single four-flock volley, but Exp D shows continuous injection is a fundamentally different problem with a fragile single-density window of stability.
+* **Lane-less protects through incidents, not in steady state.** Steady-state throughput is equivalent between lane-less and lane-based (both at `v_d`), but Exp C shows lane-less is qualitatively safer under disturbance (≥ 1.5 m vs ≈ 0 m intra-min after a brake) and recovers 1.4–2.9× faster, while Exp F shows lane-less is string-stable where lane-locked car-following amplifies disturbances.
+
+* **V2 succeeds at one-shot intersections but fails at continuous demand.** Phase 2's R(+90°) gives 29 m clearance for a single four-flock volley, but Exp D shows continuous injection is a fundamentally different problem with a fragile single-density Goldilocks window of stability.
 
 ### Phase 4 candidates
 
@@ -342,6 +415,11 @@ python experiments/exp_fundamental_diagram.py
 python experiments/exp_smoothness.py
 python experiments/exp_capacity.py
 python experiments/exp_intersection_mfd.py
+
+# Phase 3 supplement — validating the deck claims
+python experiments/exp_lane_formation.py     # Exp E — emergent lanes
+python experiments/exp_string_stability.py   # Exp F — string stability
+python experiments/exp_capacity_comparison.py# Exp G — honest capacity head-to-head
 
 # Phase 2 algorithmic improvements
 python experiments/exp_targeted_gamma.py

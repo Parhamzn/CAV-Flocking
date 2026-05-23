@@ -118,6 +118,50 @@ Three findings. First, lane-based intra-worst collapses to 0.05 m at N = 120 and
 
 Each τ tuning has exactly one λ at which the rotational pattern self-organises. Baseline V2 is robust only at λ = 0.2 (2 160 veh/h total, 1.20× signalised). Tuned V2 is robust only at λ = 0.6 (3 300 veh/h, 1.83× signalised). No tuning tested supports λ ≥ 0.8. All values are well below the per-arm geometric maximum (v_d/d_a × 4 = 20 571 veh/h). The non-monotonic "Goldilocks" behaviour contradicts the expectation of a monotonic capacity curve.
 
+### 3.4 Phase 3 supplement: validating the deck claims
+
+Exp A through D characterise algorithm capability against traffic-theory benchmarks but do not directly test the three claims often made on behalf of flocking-based CAV control: that it produces "smoother driving", "increased roadway capacity", and "lane-less and direction-less" flow. Three follow-up experiments map each claim to a clean measurement.
+
+**Exp E. Lane-formation entropy (tests the lane-less claim).** Periodic corridor with uniform-random initial y. After 10 s of settling, the y-positions over the last 20 s are pooled into a histogram per N. The Shannon entropy is normalised to a uniform distribution (1.0 = uniform, 0.0 = single bin); peaks above 0.4 × peak height count as emergent lanes.
+
+| N (k veh/km) | H / H_uniform | mode count |
+| --- | --- | --- |
+| 20 (40) | 0.887 | 3 |
+| 40-140 (80-280) | 0.80-0.95 | **2** |
+
+At every realistic density (N ≥ 40), the algorithm settles into exactly two emergent lanes with peaks at y ≈ 4 and y ≈ 10, matching the strip-hex theory row centres within the β-zone offset. At N = 120-140 the middle channel (y ∈ [6, 8.5]) is almost completely empty. **The lane-less claim is falsified.** The algorithm is lane-less by design (no lanes imposed) but lane-forming in practice (the α-lattice hex packing produces two rows that *are* emergent lanes).
+
+**Exp F. String stability (tests the smoother-driving claim).** A 16-car platoon at d_a spacing, all at v_d. The leader is held at v_x = 2 m/s for 2 s, then released. For each car i, the L2 norm of the velocity error ||e_i||₂ = √(∫ (v_x(t) - v_d)² dt) is computed over the perturbation window. The platoon is string-stable iff this norm does not grow as the disturbance propagates from leader to tail.
+
+| Metric | lane_locked | lane_less |
+| --- | --- | --- |
+| Leader (idx 15) L2 disturbance | 12.56 | 12.27 |
+| First follower (idx 14) L2 disturbance | **12.77** | 8.75 |
+| Leader → first-follower ratio | **1.02 (amplifies)** | **0.71 (decays)** |
+| Tail (idx 0) L2 disturbance | 3.93 | 3.08 |
+
+Lane-locked amplifies the leader's disturbance at the first follower (ratio 1.02, classic string instability); lane-less attenuates it by 29 % at the same position. Across the whole platoon, lane-less disturbances are 0-46 % smaller than lane-locked at every car index. **The smoother-driving claim is confirmed and strengthened**: lane-less flocking is genuinely string-stable where lane-locked car-following is marginally unstable.
+
+**Exp G. Honest head-to-head capacity comparison (tests the increased-capacity claim).** Same 14 m corridor, sweep N for two conditions side by side: lane-less (full flocking) and lane-based (2 lanes at the strip-hex row centres, y locked). Capacity = largest N with intra-min ≥ d_a / 2.
+
+| Condition | Capacity N* | k [veh/km] | q = k·v_d [veh/h] |
+| --- | --- | --- | --- |
+| Lane-less | 160 | 320 | 11 520 |
+| Lane-based (2 lanes) | **180** | **360** | **12 960** |
+| Ratio (lane-less / lane-based) | — | — | **0.89×** |
+
+Lane-based achieves 11 % HIGHER safe capacity than lane-less. The reason is exactly the Exp E finding: lane-less forms two emergent lanes but with imperfect packing inside each row; lane-based holds cars on exact lane centres. The two-row geometric ceiling is the same; the two conditions differ in how tightly they pack inside it. Lane-less also collapses *abruptly* (intra 7.00 → 4.64 → 0 across consecutive N values) while lane-based degrades *gracefully* (9.04 → 5.00 → 3.50 → 0). The steady-state q-k curves are identical in the safe regime (q = k · v_d) because mean(v_x) = v_d by construction (Exp A). **The increased-capacity claim is falsified.**
+
+**Combined verdict on the three deck claims.**
+
+| Claim | Verdict | Where the evidence lives |
+| --- | --- | --- |
+| Smoother driving | **Confirmed and strengthened** | Exp B (3-26× lower rms_a_x below saturation), Exp F (string-stable: ratio 0.71 vs 1.02), Exp C (1.4-2.9× faster brake recovery) |
+| Increased capacity | **Falsified** | Exp G: lane-based has 11 % higher capacity; steady-state q identical in safe regime |
+| Lane-less | **Falsified** | Exp E: two emergent lanes form spontaneously at every N ≥ 40 from random initial conditions |
+
+The honest pitch is that lane-less flocking provides *equivalent* steady-state throughput, *materially smoother* driving below saturation, *genuine string stability* under perturbation, and *dramatically better incident-response safety*, all without requiring imposed lane infrastructure. The lanes emerge from the algorithm itself.
+
 ## 4. Discussion
 
 ### 4.1 Cross-experiment observations

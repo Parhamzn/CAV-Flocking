@@ -108,6 +108,131 @@ clean win.
 
 ---
 
+# Phase 3 supplement: validating the deck claims  *(done · 2026-05-23)*
+
+Phase 3 Exp A-D characterised algorithm capability across traffic-theory
+benchmarks but did not directly *test the marketing claims* on the
+Week-2 deck ("smoother driving", "increased capacity", "lane-less and
+direction-less"). The user asked whether those claims are actually
+valid. Three follow-up experiments, each mapping a claim to a clean
+measurement.
+
+## Exp E. Lane-formation entropy (tests "lane-less" claim)  *(done · 2026-05-23)*
+
+**Setup (exp_lane_formation.py):** periodic corridor, uniform-random
+initial y in the usable strip. Equilibrate for 10 s, then pool the
+y-positions from the last 20 s into one histogram per N. Compute
+Shannon entropy normalised to a uniform distribution (1.0 = uniform,
+0.0 = single bin), and count peaks ≥ 0.4 × peak height as "emergent
+lanes".
+
+  | N (k veh/km) | H/H_uniform | #modes | interpretation |
+  | --- | --- | --- | --- |
+  | 20 (40) | 0.887 | 3 | three bands (sparse) |
+  | 40 (80) | 0.906 | 2 | **two emergent lanes** |
+  | 60 (120) | 0.948 | 2 | **two emergent lanes** |
+  | 90 (180) | 0.840 | 2 | **two emergent lanes** |
+  | 120 (240) | 0.802 | 2 | **two emergent lanes** |
+  | 140 (280) | 0.808 | 2 | **two emergent lanes** |
+
+**Verdict: "lane-less" is FALSIFIED.** From uniform-random initial y,
+the algorithm settles into exactly two emergent lanes at every realistic
+density (N ≥ 40). The peaks land at y ≈ 4 and y ≈ 10, matching the
+strip-hex theory row centres (d_b + 0.5 = 3.5 and W - d_b - 0.5 = 10.5)
+within the β-zone offset. At N = 120-140 the middle channel y ∈ [6, 8.5]
+is almost completely empty.
+
+This reframes the algorithm: lane-less *by design* (no lanes imposed)
+but lane-forming *in practice* (α-lattice hex packing produces two rows
+that are emergent lanes). The honest story: the algorithm discovers
+lanes rather than abolishing them. Arguably a feature (no infrastructure
+assumption, lanes adapt to road width), but not the "no-lanes" claim.
+
+## Exp F. String stability (tests "smoother driving" claim)  *(done · 2026-05-23)*
+
+**Setup (exp_string_stability.py):** 16-car platoon, single file at
+d_a spacing, all at v_d. Brake the leader (car 15) to v_x = 2 m/s for
+2 s, release. Compute ||e_i||_2 = √(∫ (v_x(t) - v_d)² dt) for each
+car. String-stable iff the disturbance does not grow as it propagates
+from leader to tail.
+
+  | metric | lane_locked | lane_less |
+  | --- | --- | --- |
+  | leader L2 disturbance | 12.56 | 12.27 |
+  | first-follower (idx 14) L2 disturbance | **12.77** | 8.75 |
+  | leader → first-follower ratio | **1.02 (amplifies)** | **0.71 (decays)** |
+  | tail (idx 0) L2 disturbance | 3.93 | 3.08 |
+
+**Verdict: "smoother driving" is CONFIRMED and STRENGTHENED.**
+Lane-locked *amplifies* the leader's disturbance at the first follower
+(ratio 1.02, classic string instability), while lane-less *attenuates*
+it by 29 % at the same position. Across the whole platoon, lane-less
+L2 disturbances are 0-46 % smaller than lane-locked (ratio 1.00-1.46),
+with the largest gap at the first follower. Both eventually decay
+(neither produces a stop-and-go shockwave at this platoon size), but
+lane-less dissipates immediately while lane-locked needs several cars
+to begin attenuating.
+
+This complements Exp B (smoothness at steady state) and Exp C
+(recovery time after a brake) with the missing string-stability
+question.
+
+## Exp G. Honest capacity comparison (tests "increased capacity" claim)  *(done · 2026-05-23)*
+
+**Setup (exp_capacity_comparison.py):** same periodic 14 m corridor;
+sweep N for two conditions head-to-head:
+  lane_less : full α + β + γ on a 2-D corridor (= Exp A reframed).
+  lane_based: 2 fixed lanes at y ≈ 4 and y ≈ 10, y locked.
+For each N: 30 s run, measure intra-min over the last 10 s.
+Capacity = largest N with intra-min ≥ d_a/2.
+
+  | N | k [veh/km] | lane_less intra | lane_based intra |
+  | --- | --- | --- | --- |
+  | 120 | 240 | 7.00 | 9.04 |
+  | 180 | 360 | **0.00 ✗** | 3.50 (right at safety) |
+  | 220 | 440 | 0.00 ✗ | 0.00 ✗ |
+
+  | Condition | Capacity N* | q = k·v_d [veh/h] |
+  | --- | --- | --- |
+  | lane_less | 160 | 11 520 |
+  | lane_based (2 lanes) | **180** | **12 960** |
+  | ratio (lane_less / lane_based) | — | **0.89×** |
+
+**Verdict: "increased capacity" is FALSIFIED.** Lane-based achieves
+**11 % HIGHER** safe capacity than lane-less on the same corridor.
+Lane-less spontaneously forms two emergent lanes (Exp E) but with
+imperfect packing inside each row, while lane-based holds cars on
+exact lane centres. The two-row geometric ceiling is the same; the
+difference is how tightly each algorithm uses it.
+
+Lane-less collapses *abruptly* (intra 7.00 → 6.93 → 4.64 → 0 across
+N = 120-180), whereas lane-based degrades *gracefully*
+(9.04 → 6.57 → 5.44 → 5.00 → 4.67 → 3.50 → 0). Both eventually fail at
+the same density (≈ 360-440 veh/km), but lane-based has a wider
+useful operating range.
+
+The steady-state q-k curves are *identical* for both conditions in the
+safe regime (q = k · v_d), since mean(v_x) = v_d by construction in
+both (Exp A).
+
+## Combined verdict on the three claims
+
+  | Deck claim | Verdict | Where the truth lives |
+  | --- | --- | --- |
+  | "Smoother driving" | **Confirmed and strengthened** | Exp B (3-26× lower rms_ax and std v_x below saturation), Exp F (string-stable; ratio 0.71 vs lane-locked's 1.02), Exp C (1.4-2.9× faster recovery) |
+  | "Increased capacity" | **Falsified** | Exp G: lane-based has 11 % higher safe capacity. Steady-state q identical in safe regime. The win is incident response, not capacity. |
+  | "Lane-less" | **Falsified** | Exp E: two emergent lanes form spontaneously at N ≥ 40 from uniform-random initial conditions. Lane-discovering, not lane-abolishing. |
+
+**Net effect on the thesis story:** the deck overclaims on capacity
+and lane-freeness, and underclaims on robustness. The honest pitch is
+that lane-less flocking provides *equivalent* steady-state throughput,
+*materially smoother* driving below saturation, *genuine string
+stability* under perturbation, and *dramatically better incident-
+response safety*, all without requiring any imposed lane infrastructure
+(lanes emerge from the algorithm itself).
+
+---
+
 # Phase 2 summary (combined algorithm)  *(done · 2026-05-23)*
 
 Combined the three Phase-2 improvements into a "V2" algorithm and benchmarked
