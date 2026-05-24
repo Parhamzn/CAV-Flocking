@@ -133,8 +133,8 @@ def main():
         ax.set_title(f'{label}\ninter={m["inter_min"]:.2f}m  max_stall={m["max_stall_s"]:.2f}s'
                      f'  {"DEADLOCK" if m["deadlock"] else "passed"}',
                      fontsize=10)
-    fig.suptitle('Intersection scenarios — open arena, no walls')
-    fig.tight_layout()
+    fig.suptitle('Intersection scenarios — open arena, no walls', fontsize=12, y=0.995)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig('exp_intersection.png', dpi=110, bbox_inches='tight')
     print('saved exp_intersection.png')
 
