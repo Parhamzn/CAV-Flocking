@@ -6,7 +6,7 @@
 
 > Empirical study of the McKenzie / Olfati-Saber flocking algorithm applied to cooperative driving. Three-phase investigation: failure-mode characterisation, algorithmic extensions, traffic-theory benchmarks, and validation of the three claims commonly made on behalf of flocking-based CAV control.
 
-Connected and Automated Vehicles (CAVs) raise a recurring question: can a fleet of vehicles drive cooperatively *without* explicit lane discipline, coordinated only by pairwise interaction forces? The $\alpha$-$\beta$-$\gamma$-$\tau$ flocking framework of Olfati-Saber [1] and McKenzie [2] is one of the cleanest formal proposals. This repository contains a complete empirical evaluation of that framework: where the algorithm works, where it fails, three orthogonal extensions that fix specific failure modes, four traffic-theory benchmark experiments, and three further experiments that directly test the deck claims of *smoother driving*, *increased capacity*, and *lane-less flow* (spoiler: one is confirmed, two are falsified).
+Connected and Automated Vehicles (CAVs) raise a recurring question: can a fleet of vehicles drive cooperatively *without* explicit lane discipline, coordinated only by pairwise interaction forces? The $\alpha\text{-}\beta\text{-}\gamma\text{-}\tau$ flocking framework of Olfati-Saber [1] and McKenzie [2] is one of the cleanest formal proposals. This repository contains a complete empirical evaluation of that framework: where the algorithm works, where it fails, three orthogonal extensions that fix specific failure modes, four traffic-theory benchmark experiments, and three further experiments that directly test the deck claims of *smoother driving*, *increased capacity*, and *lane-less flow* (spoiler: one is confirmed, two are falsified).
 
 The full formal writeup is in **[writeup.md](writeup.md)**; the research log with per-investigation findings is in **[investigations_queue.md](investigations_queue.md)**.
 
@@ -146,7 +146,7 @@ The compositional workaround is to treat both streams as a single flock so the $
 | G · single car merge | 4 + 1 | 1.70 m | 0 | 5 / 5 | 0 |
 | H · long main | 10 + 2 | 1.55 m | 0 | 12 / 12 | 0 |
 
-All eight scenarios: every car reaches the main road, zero off-road events, zero stalls. Pair-min sits at $1.55$–$1.85\,\text{m}$ during active merging (below $d_a$ but well above car width) and reverts to $d_a = 7\,\text{m}$ when streams don't conflict in time (D, E, F). The flock-ID kludge gracefully handles ratios from $1{:}0$ up to $8{:}2$ and $10{:}2$.
+All eight scenarios: every car reaches the main road, zero off-road events, zero stalls. Pair-min sits at $1.55\text{–}1.85\,\text{m}$ during active merging (below $d_a$ but well above car width) and reverts to $d_a = 7\,\text{m}$ when streams don't conflict in time (D, E, F). The flock-ID kludge gracefully handles ratios from $1{:}0$ up to $8{:}2$ and $10{:}2$.
 
 **Phase 4 candidate surfaced by the merge work:** a "same-direction inter-stream" force (basically a directional $\alpha$ that respects flock boundaries but still maintains spacing across them) would let the algorithm handle merging without the flock-ID conflation. This would also matter for any scenario with structured-but-parallel flows (lane changes, formation reconfigurations, vehicle insertions).
 
@@ -174,7 +174,7 @@ Targets the compression mode. A per-agent position-feedback term
 
 $$u_i^{\gamma,\text{pos}} = -\,c_\gamma^{\text{pos}}\,\bigl(q_{i,y} - y_\text{target}[\text{flock}]\bigr)$$
 
-is added with externally assigned bands per flock. The compression itself is *not* fixed (intra-min stays at $4.27$–$4.60\,\text{m}$ for any $c_\gamma^{\text{pos}}$), but **inter-flock minimum climbs from $5.11\,\text{m}$ baseline to $8.24\,\text{m}$ at $c_\gamma^{\text{pos}} = 0.5$** — the highest inter-flock distance recorded across all experiments. A $60\,\%$ gain in safety margin without regressions on the multi-row pathology.
+is added with externally assigned bands per flock. The compression itself is *not* fixed (intra-min stays at $4.27\text{–}4.60\,\text{m}$ for any $c_\gamma^{\text{pos}}$), but **inter-flock minimum climbs from $5.11\,\text{m}$ baseline to $8.24\,\text{m}$ at $c_\gamma^{\text{pos}} = 0.5$** — the highest inter-flock distance recorded across all experiments. A $60\,\%$ gain in safety margin without regressions on the multi-row pathology.
 
 ### 2.2 Predictive-gating suppression
 
@@ -186,7 +186,7 @@ Targets the wasted-$\tau$-at-large-offsets finding. McKenzie's existing gate is 
 
 * $dy = 0$ head-on: inter-min $6.58\,\text{m}$ retained, $\tau$ count drops $5454 \to 2620$. **No regression on the collision-imminent case.**
 * $dy = 14$ pre-sorted: $\tau$ count drops to **0**, inter-min $14\,\text{m}$. Complete suppression of wasted work.
-* $dy \in [4, 8]$ intermediate: inter-min loses $0.84$–$3.89\,\text{m}$ of safety margin but all stays above car width.
+* $dy \in [4, 8]$ intermediate: inter-min loses $0.84\text{–}3.89\,\text{m}$ of safety margin but all stays above car width.
 
 A clean additive enhancement: cuts substantial unnecessary control work at large offsets and never hurts the collision-imminent case.
 
@@ -222,7 +222,7 @@ Composing the three improvements into one algorithm is not trivial. **Predictive
 * Predictive suppression is **corridor mode only** — disable in intersections.
 * Target $\gamma$ is **opt-in** when external lane assignments exist.
 
-V2 preserves canonical corridor behaviour, eliminates wall-escapes at high $v_d$ ($266$ escapes at $v_d = 25$ reduced to $0$), and unlocks the intersection geometry class, at the cost of $1$–$4\,\text{m}$ of inter-flock margin sacrificed in cases that were already safely above car width.
+V2 preserves canonical corridor behaviour, eliminates wall-escapes at high $v_d$ ($266$ escapes at $v_d = 25$ reduced to $0$), and unlocks the intersection geometry class, at the cost of $1\text{–}4\,\text{m}$ of inter-flock margin sacrificed in cases that were already safely above car width.
 
 ---
 
@@ -236,7 +236,7 @@ Four experiments that compare the algorithm against established traffic engineer
   <img src="figures/exp_fundamental_diagram.png" alt="Exp A reframed as max stable density" width="100%">
 </p>
 
-The classical $q$–$k$–$v$ framing turns out to be **degenerate** for this algorithm. In a translation-invariant periodic corridor the $\alpha$-gradient is $x$-symmetric, so its mean $x$-component is zero at steady state. $\gamma$ is the only $x$-asymmetric force, so $\mathrm{mean}(\gamma_x) = 0$ implies $\mathrm{mean}(v_x) = v_d$ at *every* density. Confirmed empirically:
+The classical $q\text{–}k\text{–}v$ framing turns out to be **degenerate** for this algorithm. In a translation-invariant periodic corridor the $\alpha$-gradient is $x$-symmetric, so its mean $x$-component is zero at steady state. $\gamma$ is the only $x$-asymmetric force, so $\mathrm{mean}(\gamma_x) = 0$ implies $\mathrm{mean}(v_x) = v_d$ at *every* density. Confirmed empirically:
 
 <p align="center">
   <img src="figures/diagnose_fundamental.png" alt="Diagnostic: mean(v_x) is pinned at v_d at every density" width="100%">
@@ -270,8 +270,8 @@ Same corridor, two conditions with shared initial state: full flocking versus la
 | 140 (280) | 0.095 | 0.105 | 0.079 | 0.086 | **3.7** | 1.6 |
 | 160 (320) | 0.119 | 0.124 | 0.137 | 0.143 | **3.6** | 1.4 |
 
-* **Below lattice saturation** ($N \le 120$, $k \le 240\,\text{veh/km}$): flocking has $3$–$26\times$ lower $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ than lane-locked. Cars resolve spacing imbalances by shifting laterally instead of braking.
-* **At / above lattice limit** ($N \ge 140$): the advantage vanishes. $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ converge, AND **flocking peak $|j_x|$ becomes $2$–$3\times$ *worse* than lane-locked** — lateral coupling injects sharper $x$-jerks once there is no room to manoeuvre.
+* **Below lattice saturation** ($N \le 120$, $k \le 240\,\text{veh/km}$): flocking has $3\text{–}26\times$ lower $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ than lane-locked. Cars resolve spacing imbalances by shifting laterally instead of braking.
+* **At / above lattice limit** ($N \ge 140$): the advantage vanishes. $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ converge, AND **flocking peak $|j_x|$ becomes $2\text{–}3\times$ *worse* than lane-locked** — lateral coupling injects sharper $x$-jerks once there is no room to manoeuvre.
 
 The crossover at $N = 140$ matches Exp A's $k_\text{lattice}$ within rounding — *two independent experiments converge on the same regime boundary*.
 
@@ -297,7 +297,7 @@ Both conditions use two lanes ($y \approx 5$ and $y \approx 9$ in a $W = 14\,\te
 Three findings:
 
 1. **Lane-based $\text{intra}_\text{worst}$ collapses to $0.05\,\text{m}$ and $0.03\,\text{m}$ at high density** — the brake car gets effectively rear-ended; saturated 1-D $\alpha$-repulsion cannot absorb the closing velocity. Lane-less stays $\ge 1.5\,\text{m}$ at *every* density tested.
-2. **Lane-less recovers $1.4$–$2.9\times$ faster** across all densities ($\Delta t_\text{recov}$ $2.46$–$3.84\,\text{s}$ vs $5.28$–$7.18\,\text{s}$).
+2. **Lane-less recovers $1.4\text{–}2.9\times$ faster** across all densities ($\Delta t_\text{recov}$ $2.46\text{–}3.84\,\text{s}$ vs $5.28\text{–}7.18\,\text{s}$).
 3. **Counter-intuitive at $N = 140$:** lane-less wake (26 cars) > lane-based wake (12), yet lane-less *still* recovers faster. The disturbance spreads laterally across many cars briefly affected, instead of concentrating on a few that must fully stop.
 
 Steady-state throughput is identical in the safe regime (both at $v_d$, per Exp A). The lane-less win is **capacity-through-incidents**, not steady-state capacity.
@@ -363,7 +363,7 @@ over the perturbation window. String-stable iff this norm does not grow as the d
 | Leader $\to$ first-follower ratio | **1.02 (amplifies)** | **0.71 (decays)** |
 | Tail (idx 0) $\lVert e \rVert$ | 3.93 | 3.08 |
 
-**Lane-locked amplifies the leader's disturbance at the first follower** (ratio $1.02$ $\to$ the second car ends up with a *larger* L2 disturbance than the perturbed leader). That is classic string instability. Lane-less attenuates by $29\,\%$ at the same position and stays smaller throughout the platoon (lane_locked $/$ lane_less ratio is $1.00$–$1.46$ across every car). **The smoother-driving claim is confirmed and strengthened**: lane-less flocking is genuinely string-stable where lane-locked car-following is marginally unstable.
+**Lane-locked amplifies the leader's disturbance at the first follower** (ratio $1.02$ $\to$ the second car ends up with a *larger* L2 disturbance than the perturbed leader). That is classic string instability. Lane-less attenuates by $29\,\%$ at the same position and stays smaller throughout the platoon (lane_locked $/$ lane_less ratio is $1.00\text{–}1.46$ across every car). **The smoother-driving claim is confirmed and strengthened**: lane-less flocking is genuinely string-stable where lane-locked car-following is marginally unstable.
 
 ### Exp G — honest head-to-head capacity (tests the "increased capacity" claim)
 
@@ -381,13 +381,13 @@ Same $14\,\text{m}$ corridor, sweep $N$ for two conditions: lane-less (full floc
 
 **Lane-based achieves $11\,\%$ HIGHER safe capacity than lane-less.** The reason is exactly the Exp E finding: lane-less forms two emergent lanes but with imperfect packing inside each row; lane-based holds cars on exact lane centres. The two-row geometric ceiling is identical; the two conditions differ in how tightly they use it.
 
-Lane-less also collapses *abruptly* (intra-min: $7.00 \to 6.93 \to 4.64 \to 0$ across $N = 120, 140, 160, 180$) while lane-based degrades *gracefully* ($9.04 \to 6.57 \to 5.44 \to 5.00 \to 4.67 \to 3.50 \to 0$). Both eventually fail at the same density ($\approx 360$–$440\,\text{veh/km}$), but lane-based has a wider useful operating range. Steady-state $q$–$k$ curves are identical in the safe regime because $\mathrm{mean}(v_x) = v_d$ by construction in both (Exp A). **The increased-capacity claim is falsified.**
+Lane-less also collapses *abruptly* (intra-min: $7.00 \to 6.93 \to 4.64 \to 0$ across $N = 120, 140, 160, 180$) while lane-based degrades *gracefully* ($9.04 \to 6.57 \to 5.44 \to 5.00 \to 4.67 \to 3.50 \to 0$). Both eventually fail at the same density ($\approx 360\text{–}440\,\text{veh/km}$), but lane-based has a wider useful operating range. Steady-state $q\text{–}k$ curves are identical in the safe regime because $\mathrm{mean}(v_x) = v_d$ by construction in both (Exp A). **The increased-capacity claim is falsified.**
 
 ### Combined verdict on the three deck claims
 
 | Claim | Verdict | Evidence |
 | ----- | ------- | -------- |
-| Smoother driving | **Confirmed and strengthened** | Exp B ($3$–$26\times$ lower $\text{rms}_{a_x}$ below saturation), Exp F (string-stable: $0.71$ vs $1.02$), Exp C ($1.4$–$2.9\times$ faster brake recovery) |
+| Smoother driving | **Confirmed and strengthened** | Exp B ($3\text{–}26\times$ lower $\text{rms}_{a_x}$ below saturation), Exp F (string-stable: $0.71$ vs $1.02$), Exp C ($1.4\text{–}2.9\times$ faster brake recovery) |
 | Increased capacity | **Falsified** | Exp G: lane-based has $11\,\%$ higher safe capacity; steady-state $q$ identical in safe regime |
 | Lane-less | **Falsified** | Exp E: two emergent lanes form spontaneously at every $N \ge 40$ from random initial conditions |
 
@@ -403,7 +403,7 @@ The honest pitch is that lane-less flocking provides *equivalent* steady-state t
 
 * **The algorithm discovers lanes rather than abolishing them.** Exp E shows two emergent $y$-bands form spontaneously from uniform-random initial positions at every realistic density. Exp G shows those emergent lanes have $11\,\%$ lower steady-state capacity than properly designed fixed lanes (the algorithm packs the same two rows less tightly). The lane-less framing is wrong; the algorithm is *lane-discovering*.
 
-* **Lane-less protects through incidents, not in steady state.** Steady-state throughput is equivalent between lane-less and lane-based (both at $v_d$), but Exp C shows lane-less is qualitatively safer under disturbance ($\ge 1.5\,\text{m}$ vs $\approx 0\,\text{m}$ intra-min after a brake) and recovers $1.4$–$2.9\times$ faster, while Exp F shows lane-less is string-stable where lane-locked car-following amplifies disturbances.
+* **Lane-less protects through incidents, not in steady state.** Steady-state throughput is equivalent between lane-less and lane-based (both at $v_d$), but Exp C shows lane-less is qualitatively safer under disturbance ($\ge 1.5\,\text{m}$ vs $\approx 0\,\text{m}$ intra-min after a brake) and recovers $1.4\text{–}2.9\times$ faster, while Exp F shows lane-less is string-stable where lane-locked car-following amplifies disturbances.
 
 * **V2 succeeds at one-shot intersections but fails at continuous demand.** Phase 2's $R(+90°)$ gives $29\,\text{m}$ clearance for a single four-flock volley, but Exp D shows continuous injection is a fundamentally different problem with a fragile single-density Goldilocks window of stability.
 
@@ -489,7 +489,7 @@ Output PNGs and GIFs are written to the current working directory. Pre-generated
 ## References
 
 1. **Olfati-Saber, R.** (2006). "Flocking for Multi-Agent Dynamic Systems: Algorithms and Theory." *IEEE Transactions on Automatic Control*, 51(3), 401–420. DOI: [10.1109/TAC.2005.864190](https://doi.org/10.1109/TAC.2005.864190).
-   The foundational paper for the $\alpha$-$\beta$-$\gamma$ framework used in this work. Introduces the $\sigma$-norm, the bump function $\rho$, the action function $\phi_\alpha$, and the proof that the resulting potential leads to an $\alpha$-lattice equilibrium at spacing $d_a$.
+   The foundational paper for the $\alpha\text{-}\beta\text{-}\gamma$ framework used in this work. Introduces the $\sigma$-norm, the bump function $\rho$, the action function $\phi_\alpha$, and the proof that the resulting potential leads to an $\alpha$-lattice equilibrium at spacing $d_a$.
 
 2. **McKenzie, A. W.** (2012). *Robotic Control: Real-Time Architectures and Multi-Flock Flocking*. PhD dissertation, Department of Electrical and Computer Engineering, The University of Alabama, Tuscaloosa, AL.
    Extends Olfati-Saber's free-space flocking to multi-flock scenarios by adding the lateral-deflection $\tau$-force with reflection matrix $J$. Equation 6.4 of the dissertation is the $\tau$ formulation reproduced in `flocking_lib/control_tau.py`.
