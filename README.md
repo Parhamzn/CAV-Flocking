@@ -77,7 +77,7 @@ Recurring metrics:
 * **Inter-flock minimum**: smallest distance between agents in different flocks across the run. Below car width signals collision.
 * **Intra-flock minimum**: smallest pair distance within a flock. Tracks lattice integrity.
 * **Max stall**: longest interval where any agent's speed drops below $0.5\,v_d$. Detects deadlocks.
-* **RMS acceleration, peak jerk, $\operatorname{std}(v_x)$**: per-car smoothness metrics.
+* **RMS acceleration, peak jerk, $\mathrm{std}(v_x)$**: per-car smoothness metrics.
 * **Realised throughput, drop rate**: for the intersection MFD.
 
 ---
@@ -236,7 +236,7 @@ Four experiments that compare the algorithm against established traffic engineer
   <img src="figures/exp_fundamental_diagram.png" alt="Exp A reframed as max stable density" width="100%">
 </p>
 
-The classical $q$–$k$–$v$ framing turns out to be **degenerate** for this algorithm. In a translation-invariant periodic corridor the $\alpha$-gradient is $x$-symmetric, so its mean $x$-component is zero at steady state. $\gamma$ is the only $x$-asymmetric force, so $\operatorname{mean}(\gamma_x) = 0$ implies $\operatorname{mean}(v_x) = v_d$ at *every* density. Confirmed empirically:
+The classical $q$–$k$–$v$ framing turns out to be **degenerate** for this algorithm. In a translation-invariant periodic corridor the $\alpha$-gradient is $x$-symmetric, so its mean $x$-component is zero at steady state. $\gamma$ is the only $x$-asymmetric force, so $\mathrm{mean}(\gamma_x) = 0$ implies $\mathrm{mean}(v_x) = v_d$ at *every* density. Confirmed empirically:
 
 <p align="center">
   <img src="figures/diagnose_fundamental.png" alt="Diagnostic: mean(v_x) is pinned at v_d at every density" width="100%">
@@ -263,15 +263,15 @@ $k_\text{lattice}$ matches strip-hex theory within $2\,\%$. The algorithm achiev
 
 Same corridor, two conditions with shared initial state: full flocking versus lane-locked ($y$-velocity zeroed each step). Two regimes emerge with a sharp boundary.
 
-| $N$ ($k$ veh/km) | $\text{rms}_{a_x}$ flock | $\text{rms}_{a_x}$ lock | $\operatorname{std}(v_x)$ flock | $\operatorname{std}(v_x)$ lock | $\text{peak}_{j_x}$ flock | $\text{peak}_{j_x}$ lock |
+| $N$ ($k$ veh/km) | $\text{rms}_{a_x}$ flock | $\text{rms}_{a_x}$ lock | $\mathrm{std}(v_x)$ flock | $\mathrm{std}(v_x)$ lock | $\text{peak}_{j_x}$ flock | $\text{peak}_{j_x}$ lock |
 | -------------- | ------------ | ----------- | ------------ | ----------- | ------------- | ------------ |
 | 90 (180) | 0.064 | **0.183** | 0.018 | **0.196** | 3.4 | 5.4 |
 | 120 (240) | 0.017 | **0.111** | 0.005 | **0.129** | 1.1 | 1.6 |
 | 140 (280) | 0.095 | 0.105 | 0.079 | 0.086 | **3.7** | 1.6 |
 | 160 (320) | 0.119 | 0.124 | 0.137 | 0.143 | **3.6** | 1.4 |
 
-* **Below lattice saturation** ($N \le 120$, $k \le 240\,\text{veh/km}$): flocking has $3$–$26\times$ lower $\text{rms}_{a_x}$ and $\operatorname{std}(v_x)$ than lane-locked. Cars resolve spacing imbalances by shifting laterally instead of braking.
-* **At / above lattice limit** ($N \ge 140$): the advantage vanishes. $\text{rms}_{a_x}$ and $\operatorname{std}(v_x)$ converge, AND **flocking peak $|j_x|$ becomes $2$–$3\times$ *worse* than lane-locked** — lateral coupling injects sharper $x$-jerks once there is no room to manoeuvre.
+* **Below lattice saturation** ($N \le 120$, $k \le 240\,\text{veh/km}$): flocking has $3$–$26\times$ lower $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ than lane-locked. Cars resolve spacing imbalances by shifting laterally instead of braking.
+* **At / above lattice limit** ($N \ge 140$): the advantage vanishes. $\text{rms}_{a_x}$ and $\mathrm{std}(v_x)$ converge, AND **flocking peak $|j_x|$ becomes $2$–$3\times$ *worse* than lane-locked** — lateral coupling injects sharper $x$-jerks once there is no room to manoeuvre.
 
 The crossover at $N = 140$ matches Exp A's $k_\text{lattice}$ within rounding — *two independent experiments converge on the same regime boundary*.
 
@@ -381,7 +381,7 @@ Same $14\,\text{m}$ corridor, sweep $N$ for two conditions: lane-less (full floc
 
 **Lane-based achieves $11\,\%$ HIGHER safe capacity than lane-less.** The reason is exactly the Exp E finding: lane-less forms two emergent lanes but with imperfect packing inside each row; lane-based holds cars on exact lane centres. The two-row geometric ceiling is identical; the two conditions differ in how tightly they use it.
 
-Lane-less also collapses *abruptly* (intra-min: $7.00 \to 6.93 \to 4.64 \to 0$ across $N = 120, 140, 160, 180$) while lane-based degrades *gracefully* ($9.04 \to 6.57 \to 5.44 \to 5.00 \to 4.67 \to 3.50 \to 0$). Both eventually fail at the same density ($\approx 360$–$440\,\text{veh/km}$), but lane-based has a wider useful operating range. Steady-state $q$–$k$ curves are identical in the safe regime because $\operatorname{mean}(v_x) = v_d$ by construction in both (Exp A). **The increased-capacity claim is falsified.**
+Lane-less also collapses *abruptly* (intra-min: $7.00 \to 6.93 \to 4.64 \to 0$ across $N = 120, 140, 160, 180$) while lane-based degrades *gracefully* ($9.04 \to 6.57 \to 5.44 \to 5.00 \to 4.67 \to 3.50 \to 0$). Both eventually fail at the same density ($\approx 360$–$440\,\text{veh/km}$), but lane-based has a wider useful operating range. Steady-state $q$–$k$ curves are identical in the safe regime because $\mathrm{mean}(v_x) = v_d$ by construction in both (Exp A). **The increased-capacity claim is falsified.**
 
 ### Combined verdict on the three deck claims
 
