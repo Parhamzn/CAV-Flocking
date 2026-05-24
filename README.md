@@ -24,7 +24,7 @@ The full formal writeup is in **[writeup.md](writeup.md)**; the research log wit
 
 <div align="center">
 
-<em>Four flocks converging at a symmetric 90° intersection under the Phase-2 V2 algorithm. McKenzie's original reflection matrix $J$ could not handle this geometry (inter-flock minimum $= 0.00\,\text{m}$, i.e. collisions); substituting a true rotation matrix $R(+90°)$ produces a coherent clockwise circulation with $29\,\text{m}$ of clearance.</em>
+Four flocks converging at a symmetric 90° intersection under the Phase-2 V2 algorithm. McKenzie's original reflection matrix $J$ could not handle this geometry (inter-flock minimum $= 0.00\,\text{m}$, i.e. collisions); substituting a true rotation matrix $R(+90°)$ produces a coherent clockwise circulation with $29\,\text{m}$ of clearance.
 
 </div>
 
